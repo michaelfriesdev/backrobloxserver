@@ -6,9 +6,10 @@ app.use(express.json());
 app.use(cors());
 
 const API_KEY = "SECRET_KEY_123";
-let servers = {};
+let servers = {}; // zapis danych serwerów
 let shutdownCommands = {}; // { serverId: reason }
 
+// POST /update – aktualizacja danych serwera
 app.post("/update", (req, res) => {
     if (req.headers.authorization !== API_KEY) return res.sendStatus(403);
     const data = req.body;
@@ -24,9 +25,10 @@ app.post("/update", (req, res) => {
     res.sendStatus(200);
 });
 
+// GET /servers – pobranie danych serwerów
 app.get("/servers", (req, res) => res.json(Object.values(servers)));
 
-// Endpoint z panelu HTML do wysyłania shutdown
+// POST /shutdown – dodanie komendy shutdown
 app.post("/shutdown", (req, res) => {
     const { serverId, reason, apiKey } = req.body;
     if (apiKey !== API_KEY) return res.sendStatus(403);
@@ -34,17 +36,17 @@ app.post("/shutdown", (req, res) => {
 
     shutdownCommands[serverId] = reason || "Server maintenance";
     console.log(`Shutdown scheduled for ${serverId} with reason: ${reason}`);
-    res.json({status:"ok"});
+    res.json({status: "ok"});
 });
 
-// Endpoint dla Roblox do sprawdzania komend
+// GET /checkShutdown/:serverId – dla Roblox, sprawdzenie komendy
 app.get("/checkShutdown/:serverId", (req, res) => {
     const { serverId } = req.params;
     if (!serverId) return res.status(400).send("Missing serverId");
 
     if (shutdownCommands[serverId]) {
         const reason = shutdownCommands[serverId];
-        delete shutdownCommands[serverId]; // wykonujemy komendę tylko raz
+        delete shutdownCommands[serverId]; // wykonujemy tylko raz
         return res.json({ shutdown: true, reason });
     }
     res.json({ shutdown: false });
