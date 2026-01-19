@@ -1,10 +1,8 @@
-// backend/index.js
 const express = require("express");
 const cors = require("cors");
 
 const app = express();
 
-// Obsługa błędów globalnych
 process.on("uncaughtException", (err) => console.error("Uncaught exception:", err));
 process.on("unhandledRejection", (reason) => console.error("Unhandled rejection:", reason));
 
@@ -44,9 +42,5 @@ app.post("/update", (req, res) => {
 // Pobieranie danych serwerów
 app.get("/servers", (req, res) => res.json(Object.values(servers)));
 
-// Strona testowa
-app.get("/", (req, res) => res.send("API działa! Użyj /servers lub /update"));
-
-// Port
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`API ONLINE on port ${PORT}`));
