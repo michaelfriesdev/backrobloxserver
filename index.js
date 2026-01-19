@@ -27,5 +27,5 @@ app.get("/servers", (req, res) => res.json(Object.values(servers)));
 
 app.get("/", (req, res) => res.send("API działa! Użyj /servers lub /update"));
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`API ONLINE na porcie ${PORT}`));
