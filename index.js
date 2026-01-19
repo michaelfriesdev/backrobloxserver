@@ -1,7 +1,9 @@
 const express = require("express");
+const cors = require("cors");
 const app = express();
 
 app.use(express.json());
+app.use(cors({ origin: "https://strazroblox.pl" }));
 
 const API_KEY = "SECRET_KEY_123";
 let servers = {};
@@ -24,4 +26,9 @@ app.get("/servers", (req, res) => {
   res.json(Object.values(servers));
 });
 
-app.listen(3000, () => console.log("API ONLINE"));
+app.get("/", (req, res) => {
+  res.send("API działa! Użyj /servers lub /update");
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("API ONLINE"));
