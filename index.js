@@ -23,6 +23,7 @@ app.post("/update", (req, res) => {
     if (!data.serverId) return res.status(400).send("Missing serverId");
 
     servers[data.serverId] = {
+      instanceId: data.instanceId || data.serverId,
       playerCount: data.playerCount || 0,
       players: data.players.map(p => ({
         name: p.name,
