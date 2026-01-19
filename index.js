@@ -4,15 +4,15 @@ const app = express();
 
 app.use(express.json());
 
-// Włącz CORS na test
-app.use(cors()); // lub { origin: "https://strazroblox.pl" }
+// Włącz CORS
+app.use(cors()); // or { origin: "https://strazroblox.pl" }
 
 const API_KEY = "SECRET_KEY_123";
 let servers = {};
 
+// POST /update
 app.post("/update", (req, res) => {
-  if (req.headers.authorization !== API_KEY)
-    return res.sendStatus(403);
+  if (req.headers.authorization !== API_KEY) return res.sendStatus(403);
 
   const data = req.body;
   servers[data.serverId] = {
@@ -23,9 +23,17 @@ app.post("/update", (req, res) => {
   res.sendStatus(200);
 });
 
+// GET /servers
 app.get("/servers", (req, res) => res.json(Object.values(servers)));
 
+// GET /
 app.get("/", (req, res) => res.send("API działa! Użyj /servers lub /update"));
 
-const PORT = process.env.PORT || 8080;
+// **Dynamic port assignment for Railway**
+const PORT = process.env.PORT;
+if (!PORT) {
+  console.error("❌ ERROR: process.env.PORT is not set. Railway requires this to be used.");
+  process.exit(1);
+}
+
 app.listen(PORT, () => console.log(`API ONLINE na porcie ${PORT}`));
