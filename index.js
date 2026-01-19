@@ -43,10 +43,8 @@ app.get("/servers", (req, res) => res.json(Object.values(servers)));
 app.get("/", (req, res) => res.send("API działa! Użyj /servers lub /update"));
 
 // Use Railway dynamic port
-const PORT = process.env.PORT;
-if (!PORT) {
-  console.error("❌ ERROR: process.env.PORT is not set! Railway requires this.");
-  process.exit(1);
-}
+// Use Fly.io PORT or fallback to 8080 for local testing
+const PORT = process.env.PORT || 8080;
 
 app.listen(PORT, () => console.log(`API ONLINE on port ${PORT}`));
+
