@@ -1,21 +1,3 @@
-const express = require("express");
-const cors = require("cors");
-
-const app = express();
-
-// Error handlers to prevent container from crashing
-process.on("uncaughtException", (err) => console.error("Uncaught exception:", err));
-process.on("unhandledRejection", (reason) => console.error("Unhandled rejection:", reason));
-
-// Middleware
-app.use(express.json());
-app.use(cors()); // enable CORS for all origins
-
-// API key for POST requests
-const API_KEY = "SECRET_KEY_123";
-let servers = {};
-
-// POST /update
 app.post("/update", (req, res) => {
   try {
     if (req.headers.authorization !== API_KEY) return res.sendStatus(403);
@@ -25,7 +7,12 @@ app.post("/update", (req, res) => {
 
     servers[data.serverId] = {
       playerCount: data.playerCount || 0,
-      players: data.players || [],
+      players: data.players.map(p => ({
+        name: p.name,
+        userId: p.userId,
+        avatar: p.avatar,
+        playtime: p.playtime
+      })),
       lastUpdate: Date.now(),
     };
 
@@ -35,16 +22,3 @@ app.post("/update", (req, res) => {
     res.sendStatus(500);
   }
 });
-
-// GET /servers
-app.get("/servers", (req, res) => res.json(Object.values(servers)));
-
-// GET /
-app.get("/", (req, res) => res.send("API działa! Użyj /servers lub /update"));
-
-// Use Railway dynamic port
-// Use Fly.io PORT or fallback to 8080 for local testing
-const PORT = process.env.PORT || 8080;
-
-app.listen(PORT, () => console.log(`API ONLINE on port ${PORT}`));
-
