@@ -6,39 +6,48 @@ app.use(express.json());
 app.use(cors());
 
 const API_KEY = "SECRET_KEY_123";
-let servers = {}; // zapis serwerów
+let servers = {};
+let shutdownCommands = {}; // { serverId: reason }
 
-// POST /update – aktualizacja danych serwera
 app.post("/update", (req, res) => {
-  if (req.headers.authorization !== API_KEY) return res.sendStatus(403);
+    if (req.headers.authorization !== API_KEY) return res.sendStatus(403);
+    const data = req.body;
+    if (!data.serverId) return res.status(400).send("Missing serverId");
 
-  const data = req.body;
-  if (!data.serverId) return res.status(400).send("Missing serverId");
+    servers[data.serverId] = {
+        instanceId: data.instanceId || data.serverId,
+        playerCount: data.playerCount || 0,
+        players: data.players || [],
+        lastUpdate: Date.now()
+    };
 
-  servers[data.serverId] = {
-    instanceId: data.instanceId || data.serverId,
-    playerCount: data.playerCount || 0,
-    players: data.players || [],
-    lastUpdate: Date.now()
-  };
-
-  res.sendStatus(200);
+    res.sendStatus(200);
 });
 
-// GET /servers – pobranie danych wszystkich serwerów
 app.get("/servers", (req, res) => res.json(Object.values(servers)));
 
-// POST /shutdown – wysłanie komendy shutdown
+// Endpoint z panelu HTML do wysyłania shutdown
 app.post("/shutdown", (req, res) => {
-  const {serverId, reason, apiKey} = req.body;
-  if (apiKey !== API_KEY) return res.sendStatus(403);
-  if (!serverId) return res.status(400).send("Missing serverId");
+    const { serverId, reason, apiKey } = req.body;
+    if (apiKey !== API_KEY) return res.sendStatus(403);
+    if (!serverId) return res.status(400).send("Missing serverId");
 
-  // W prawdziwym scenariuszu backend wysyła komendę do Roblox RemoteEvent
-  // Tutaj logujemy dla przykładu
-  console.log(`Shutdown requested for server ${serverId} with reason: ${reason}`);
+    shutdownCommands[serverId] = reason || "Server maintenance";
+    console.log(`Shutdown scheduled for ${serverId} with reason: ${reason}`);
+    res.json({status:"ok"});
+});
 
-  res.json({status: "ok", message: `Shutdown request sent for server ${serverId}`});
+// Endpoint dla Roblox do sprawdzania komend
+app.get("/checkShutdown/:serverId", (req, res) => {
+    const { serverId } = req.params;
+    if (!serverId) return res.status(400).send("Missing serverId");
+
+    if (shutdownCommands[serverId]) {
+        const reason = shutdownCommands[serverId];
+        delete shutdownCommands[serverId]; // wykonujemy komendę tylko raz
+        return res.json({ shutdown: true, reason });
+    }
+    res.json({ shutdown: false });
 });
 
 const PORT = process.env.PORT || 8080;
