@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "postinstall": "npm install cors --omit=dev"
   },
   "engines": {
     "node": "18.x"
@@ -13,3 +14,4 @@
     "cors": "^2.8.5"
   }
 }
+
