@@ -1,46 +1,81 @@
-const express = require("express");
-const cors = require("cors");
+-- Roblox Server Script
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-const app = express();
+-- RemoteEvent dla komend z backendu
+local AdminEvent = Instance.new("RemoteEvent")
+AdminEvent.Name = "AdminEvent"
+AdminEvent.Parent = ReplicatedStorage
 
-process.on("uncaughtException", (err) => console.error("Uncaught exception:", err));
-process.on("unhandledRejection", (reason) => console.error("Unhandled rejection:", reason));
+-- Backend API info
+local API_URL = "https://backrobloxserver.fly.dev/update"
+local API_KEY = "SECRET_KEY_123"
 
-app.use(express.json());
-app.use(cors());
+-- Śledzenie czasu dołączenia graczy
+local joinTimes = {}
 
-const API_KEY = "SECRET_KEY_123";
-let servers = {};
+-- Funkcja wysyłania danych o serwerze do backendu
+local function sendData()
+    local players = {}
 
-// Aktualizacja danych serwera
-app.post("/update", (req, res) => {
-  try {
-    if (req.headers.authorization !== API_KEY) return res.sendStatus(403);
+    for _, plr in ipairs(Players:GetPlayers()) do
+        local joinTime = joinTimes[plr.UserId] or os.time()
+        local playtime = os.time() - joinTime
 
-    const data = req.body;
-    if (!data.serverId) return res.status(400).send("Missing serverId");
+        -- Avatar z UserId przez Thumbnails API
+        local avatarUrl = "https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=" .. plr.UserId ..
+                          "&size=420x420&format=Png&isCircular=false"
 
-    servers[data.serverId] = {
-      instanceId: data.instanceId || data.serverId,
-      playerCount: data.playerCount || 0,
-      players: data.players.map(p => ({
-        name: p.name,
-        userId: p.userId,
-        avatar: p.avatar,
-        playtime: p.playtime
-      })),
-      lastUpdate: Date.now(),
-    };
+        table.insert(players, {
+            name = plr.Name,
+            userId = plr.UserId,
+            avatar = avatarUrl,
+            playtime = playtime
+        })
+    end
 
-    res.sendStatus(200);
-  } catch (err) {
-    console.error("Error in /update:", err);
-    res.sendStatus(500);
-  }
-});
+    local data = {
+        serverId = game.JobId,
+        instanceId = game.JobId,
+        playerCount = #players,
+        players = players
+    }
 
-// Pobieranie danych serwerów
-app.get("/servers", (req, res) => res.json(Object.values(servers)));
+    local json = HttpService:JSONEncode(data)
 
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`API ONLINE on port ${PORT}`));
+    pcall(function()
+        HttpService:PostAsync(
+            API_URL,
+            json,
+            Enum.HttpContentType.ApplicationJson,
+            false,
+            {["Authorization"] = API_KEY}
+        )
+    end)
+end
+
+-- Eventy graczy
+Players.PlayerAdded:Connect(function(plr)
+    joinTimes[plr.UserId] = os.time()
+    sendData()
+end)
+
+Players.PlayerRemoving:Connect(function(plr)
+    sendData()
+    joinTimes[plr.UserId] = nil
+end)
+
+-- Funkcja shutdown serwera
+local function shutdownServer(reason)
+    for _, plr in ipairs(Players:GetPlayers()) do
+        plr:Kick(reason or "Serwer zostaje zamknięty.")
+    end
+end
+
+-- Nasłuchiwanie komendy shutdown z backendu
+AdminEvent.OnServerEvent:Connect(function(player, command, reason)
+    if command == "shutdown" then
+        shutdownServer(reason)
+    end
+end)
