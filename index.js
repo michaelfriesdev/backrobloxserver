@@ -11,7 +11,7 @@ let servers = {};
 let shutdownCommands = {};
 let avatarCache = {};
 let bans = [];
-let kicks = {}; // Nowa kolekcja dla kicków { serverId: { playerId, reason } }
+let kicks = {};
 let logs = [];
 const AVATAR_CACHE_DURATION = 1000 * 60 * 60;
 
@@ -92,7 +92,6 @@ app.get("/checkShutdown/:serverId", (req, res) => {
     res.json({ shutdown: false });
 });
 
-// KICK SYSTEM - NOWE ENDPOINTY
 
 // Wysłanie komendy kick
 app.post("/kick", (req, res) => {
@@ -104,7 +103,7 @@ app.post("/kick", (req, res) => {
         return res.status(400).json({ error: "Missing playerId or reason" });
     }
     
-    // Zapisujemy kick dla wszystkich serwerów (lub konkretnego jeśli podano)
+
     const kickId = `${playerId}_${Date.now()}`;
     kicks[kickId] = {
         playerId,
@@ -121,19 +120,17 @@ app.post("/kick", (req, res) => {
         message: `Player ${playerName} (${playerId}) kicked: ${reason} ${serverId ? `from server ${serverId}` : 'from all servers'}`
     });
     
-    // Oczyszczanie starych kicków
     cleanupExpiredKicks();
     
     res.json({ status: "ok", message: "Kick command sent" });
 });
 
-// Sprawdzenie czy gracz ma być wykopany (dla konkretnego serwera)
+
 app.get("/checkKick/:serverId/:playerId", (req, res) => {
     const { serverId, playerId } = req.params;
     
     cleanupExpiredKicks();
     
-    // Szukamy kicków dla tego gracza
     const playerKicks = Object.values(kicks).filter(kick => 
         kick.playerId == playerId && 
         (kick.serverId === "all" || kick.serverId === serverId)
@@ -141,7 +138,6 @@ app.get("/checkKick/:serverId/:playerId", (req, res) => {
     
     if (playerKicks.length > 0) {
         const latestKick = playerKicks[0];
-        // Usuwamy użyty kick
         const kickId = Object.keys(kicks).find(id => kicks[id] === latestKick);
         if (kickId) delete kicks[kickId];
         
@@ -154,7 +150,7 @@ app.get("/checkKick/:serverId/:playerId", (req, res) => {
     res.json({ kick: false });
 });
 
-// Oczyszczanie wygasłych kicków
+
 function cleanupExpiredKicks() {
     const now = Date.now();
     Object.keys(kicks).forEach(kickId => {
@@ -173,7 +169,6 @@ app.post("/ban", (req, res) => {
     
     const expiresAt = duration > 0 ? Date.now() + (duration * 60 * 60 * 1000) : null;
     
-    // Usuwamy stare bany dla tego gracza
     bans = bans.filter(b => b.playerId !== playerId);
     
     // Dodajemy nowy ban
@@ -186,7 +181,6 @@ app.post("/ban", (req, res) => {
         bannedBy: "admin"
     });
     
-    // Wyrzucamy również gracza (dodajemy kick)
     const kickId = `${playerId}_ban_${Date.now()}`;
     kicks[kickId] = {
         playerId,
@@ -194,7 +188,7 @@ app.post("/ban", (req, res) => {
         reason: `Banned: ${reason}`,
         serverId: "all",
         timestamp: Date.now(),
-        expiresAt: Date.now() + (10 * 60 * 1000) // 10 minut na ban kick
+        expiresAt: Date.now() + (10 * 60 * 1000)
     };
     
     logs.push({
@@ -244,7 +238,6 @@ app.get("/logs", (req, res) => {
     res.json(logs.slice(-100)); // Ostatnie 100 logów
 });
 
-// Strona główna przekierowuje do index.html
 app.use(express.static('public'));
 
 app.use((req, res) => {
